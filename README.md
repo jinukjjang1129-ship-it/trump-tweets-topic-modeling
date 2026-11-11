@@ -72,3 +72,31 @@ python src/regression.py
 - 전처리·이벤트 생성·수익률 계산까지 실행 가능한 재현 파이프라인
 
 기존 분석 노트북과 원본 결과 파일은 연구 기록을 보존하기 위해 변경하지 않았습니다.
+
+## 원본 데이터 기반 재검증
+
+2026-11-11 재검증에서는 혼합 DST 오프셋 파싱을 수정하고 원본 OHLC에서 직접 수익률을 계산했습니다. 실제 경과시간, 1분 이상 진입 지연, horizon별 이벤트 중복 제거, 일자 군집 표준오차, BH 다중검정 보정, 거래비용을 포함합니다. 기존 연구 파일은 보존했습니다.
+
+**기존 +2.1%p와 p-value 0.005~0.008은 재현 확인된 성과로 표시하지 않습니다.** 새 분석도 가격 공급자의 시간대·거래 가능 자산·거래소 달력 확인과 미래 표본 검증이 필요한 조건부 결과입니다. [상세 검증 보고서](docs/validation.md)에 원형 LDA 재실행, 모델 선택, 누락 입력, 전략 정의 차이를 기록했습니다.
+
+```bash
+python -m nltk.downloader stopwords
+python src/topic_pipeline.py --output result/generated/lda
+python src/event_pipeline.py --price-timezone Etc/GMT+5 \
+  --topic-input result/generated/lda/train_only_topic_scores.csv \
+  --output result/generated/est
+python src/event_pipeline.py --price-timezone UTC \
+  --topic-input result/generated/lda/train_only_topic_scores.csv \
+  --output result/generated/utc
+pip install -r requirements-dev.txt
+pytest -q
+ruff check src tests
+```
+
+`Etc/GMT+5`는 이름의 부호와 달리 UTC-5 고정 EST를 뜻합니다. 공급자 확인 전에는 한 가정을 확정하지 않습니다. 비용은 `--cost-bps`로 왕복 비용 시나리오를 지정합니다. 기본 신호는 토픽과 tariff 교집합이며 `--signal tariff`는 단어 단독 민감도 검사입니다.
+
+![EST 가정의 롱/숏 전환 비교](result/validation/est/switch_comparison.png)
+
+![동일 이벤트 노출 비교](result/validation/est/matched_exposure.png)
+
+검증 결과 요약: [EST 가정](result/validation/est/summary.json), [UTC 가정](result/validation/utc/summary.json). 학습된 모델·개별 트윗 점수·상세 거래 및 equity CSV는 로컬 생성물로 남깁니다. 원본 데이터의 재배포 허가는 별도 확인이 필요합니다.

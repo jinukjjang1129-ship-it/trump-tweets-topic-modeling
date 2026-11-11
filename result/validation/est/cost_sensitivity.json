@@ -1,0 +1,26 @@
+[
+  {
+    "roundtrip_cost_bps": 0,
+    "long_return": 0.03103661681279002,
+    "hedged_return": 0.05891920605977985,
+    "difference_pp": 2.788258924698983
+  },
+  {
+    "roundtrip_cost_bps": 2,
+    "long_return": 0.03083043010809794,
+    "hedged_return": 0.05237699474094759,
+    "difference_pp": 2.154656463284965
+  },
+  {
+    "roundtrip_cost_bps": 5,
+    "long_return": 0.03052122735174878,
+    "hedged_return": 0.04263938615880325,
+    "difference_pp": 1.2118158807054469
+  },
+  {
+    "roundtrip_cost_bps": 10,
+    "long_return": 0.030006095456655446,
+    "hedged_return": 0.026609853509925285,
+    "difference_pp": -0.3396241946730161
+  }
+]
