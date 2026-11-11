@@ -1,0 +1,6 @@
+.........                                                                [100%]
+9 passed in 1.89s
+All checks passed!
+Original data, notebooks, PDF and historical result images: unchanged against PR #1 head.
+Baseline regression: blocked by missing price-return CSV.
+Baseline backtest: failed on mixed DST offsets; fixed run passed.

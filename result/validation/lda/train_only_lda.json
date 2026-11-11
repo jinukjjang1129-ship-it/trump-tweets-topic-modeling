@@ -1,0 +1,75 @@
+{
+  "split_utc": "2018-09-01 00:00:00+00:00",
+  "train_documents": 4459,
+  "test_documents": 4387,
+  "selected_k": 10,
+  "trade_topic_id": 9,
+  "trade_topic_words": [
+    [
+      "great",
+      0.02390190213918686
+    ],
+    [
+      "big",
+      0.014128783717751503
+    ],
+    [
+      "work",
+      0.010947673581540585
+    ],
+    [
+      "democrat",
+      0.010859420523047447
+    ],
+    [
+      "republican",
+      0.010549903847277164
+    ],
+    [
+      "senat",
+      0.009835773147642612
+    ],
+    [
+      "get",
+      0.00957911554723978
+    ],
+    [
+      "good",
+      0.009017790667712688
+    ],
+    [
+      "job",
+      0.008882573805749416
+    ],
+    [
+      "year",
+      0.008805569261312485
+    ],
+    [
+      "our_countri",
+      0.008500400930643082
+    ],
+    [
+      "tariff",
+      0.008458764292299747
+    ],
+    [
+      "would",
+      0.008093069307506084
+    ],
+    [
+      "china",
+      0.007756369654089212
+    ],
+    [
+      "come",
+      0.007750857621431351
+    ]
+  ],
+  "selection": "maximum training c_v, seed 42, k=10/20/30",
+  "limitations": [
+    "One seed; topic count stability not established",
+    "Retrospective split is not an untouched future test",
+    "Model artifact is local-only pending source rights review"
+  ]
+}
