@@ -1,122 +1,111 @@
-# code/main/regression.py
-import os
+"""Exploratory robust regression of topic scores on forward market returns.
+
+This script does not establish causality or adjust for multiple testing.
+It requires data/processed/reg_input_price_returns.csv (not committed).
+"""
+from pathlib import Path
+
 import pandas as pd
 import statsmodels.api as sm
 
 
-# -----------------------
-# 설정
-# -----------------------
-HORIZONS = [1, 10, 20, 30, 45, 60, 120]
-MIN_GAP_MINUTES = 10
+ROOT = Path(__file__).resolve().parents[1]
+TOPIC_PATH = ROOT / "data/processed/reg_input_topic0_minute.csv"
+RETURNS_PATH = ROOT / "data/processed/reg_input_price_returns.csv"
+OUTPUT_PATH = ROOT / "result/generated/regression_trade_war_topic0.csv"
 
-TOPIC_COL = "topic0"  # Trade War topic
-TIME_COL = "datetime"
+HORIZONS = (1, 10, 20, 30, 45, 60, 120)
+TOPIC_COLUMN = "topic0"
+TIME_COLUMN = "datetime"
+MIN_EVENT_GAP_MINUTES = 10
 
 
-# -----------------------
-# 유틸: overlap 제거
-# -----------------------
-def drop_overlaps(df, time_col, min_gap_minutes=10):
-    df = df.sort_values(time_col).reset_index(drop=True).copy()
-    keep = []
+def remove_nearby_events(
+    events: pd.DataFrame, minimum_gap_minutes: int = MIN_EVENT_GAP_MINUTES
+) -> pd.DataFrame:
+    """Keep the first event in each minimum-gap window."""
+    events = events.sort_values(TIME_COLUMN).reset_index(drop=True)
+    min_gap = pd.Timedelta(minutes=minimum_gap_minutes)
+    keep_positions = []
     last_time = None
 
-    for t in df[time_col]:
-        if last_time is None or (t - last_time) >= pd.Timedelta(minutes=min_gap_minutes):
-            keep.append(True)
-            last_time = t
-        else:
-            keep.append(False)
+    for position, timestamp in enumerate(events[TIME_COLUMN]):
+        if last_time is None or timestamp - last_time >= min_gap:
+            keep_positions.append(position)
+            last_time = timestamp
 
-    return df.loc[keep].reset_index(drop=True)
+    return events.iloc[keep_positions].reset_index(drop=True)
 
 
-# -----------------------
-# main
-# -----------------------
-def main():
+def load_inputs() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Read topic scores and aligned forward-return data."""
+    if not RETURNS_PATH.exists():
+        raise FileNotFoundError(
+            f"Missing {RETURNS_PATH}. Generate this processed input from "
+            "the original minute-price data before running regression."
+        )
 
-    # 입력 경로
-    topic_path = "data/processed/reg_input_topic0_minute.csv"
-    price_path = "data/processed/reg_input_price_returns.csv"
+    topic = pd.read_csv(TOPIC_PATH)
+    returns = pd.read_csv(RETURNS_PATH)
 
-    # 결과 저장 폴더
-    out_dir = "results"
-    os.makedirs(out_dir, exist_ok=True)
+    for frame in (topic, returns):
+        frame[TIME_COLUMN] = pd.to_datetime(frame[TIME_COLUMN], errors="coerce")
 
-    # -----------------------
-    # 데이터 로드
-    # -----------------------
-    topic = pd.read_csv(topic_path)
-    price = pd.read_csv(price_path)
+    topic = topic.dropna(subset=[TIME_COLUMN, TOPIC_COLUMN])
+    returns = returns.dropna(subset=[TIME_COLUMN])
+    return topic, returns
 
-    topic[TIME_COL] = pd.to_datetime(topic[TIME_COL], errors="coerce")
-    price[TIME_COL] = pd.to_datetime(price[TIME_COL], errors="coerce")
 
-    topic = topic.dropna(subset=[TIME_COL, TOPIC_COL]).copy()
-    price = price.dropna(subset=[TIME_COL]).copy()
-
-    # -----------------------
-    # 이벤트 정의 (median 기준)
-    # -----------------------
-    q = topic[TOPIC_COL].median()
-    events = topic[topic[TOPIC_COL] >= q].copy()
-
-    # -----------------------
-    # 가격 데이터와 결합
-    # -----------------------
-    df = pd.merge_asof(
-        events.sort_values(TIME_COL),
-        price.sort_values(TIME_COL),
-        on=TIME_COL,
-        direction="forward"
-    )
-
-    df = df.dropna().reset_index(drop=True)
-
-    # overlap 제거
-    df = drop_overlaps(df, TIME_COL, MIN_GAP_MINUTES)
-
-    # -----------------------
-    # 회귀 실행
-    # -----------------------
-    rows = []
-
-    for h in HORIZONS:
-        ret_col = f"ret_{h}m"
-
-        if ret_col not in df.columns:
+def fit_regressions(events: pd.DataFrame) -> pd.DataFrame:
+    """Fit one HuberT robust linear model for each available horizon."""
+    records = []
+    for horizon in HORIZONS:
+        return_column = f"ret_{horizon}m"
+        if return_column not in events:
             continue
 
-        y = df[ret_col]
-        X = sm.add_constant(df[[TOPIC_COL]])
+        sample = events[[TOPIC_COLUMN, return_column]].dropna()
+        if sample.empty:
+            continue
 
-        mask = y.notna()
-        res = sm.RLM(
-            y[mask],
-            X[mask],
-            M=sm.robust.norms.HuberT()
+        predictor = sm.add_constant(sample[[TOPIC_COLUMN]])
+        fit = sm.RLM(
+            sample[return_column],
+            predictor,
+            M=sm.robust.norms.HuberT(),
         ).fit()
 
-        rows.append({
-            "horizon_min": h,
-            "events_used": int(res.nobs),
-            "beta_topic0": float(res.params[TOPIC_COL]),
-            "p_value": float(res.pvalues[TOPIC_COL])
-        })
+        records.append(
+            {
+                "horizon_min": horizon,
+                "events_used": int(fit.nobs),
+                "beta_topic0": float(fit.params[TOPIC_COLUMN]),
+                "p_value": float(fit.pvalues[TOPIC_COLUMN]),
+            }
+        )
+    return pd.DataFrame(records)
 
-    results = pd.DataFrame(rows)
 
-    # -----------------------
-    # 저장
-    # -----------------------
-    out_path = os.path.join(out_dir, "regression_trade_war_topic0.csv")
-    results.to_csv(out_path, index=False, encoding="utf-8")
+def main() -> None:
+    topic, returns = load_inputs()
+    threshold = topic[TOPIC_COLUMN].median()
+    events = topic.loc[topic[TOPIC_COLUMN] >= threshold].sort_values(TIME_COLUMN)
 
-    print("✅ 회귀 완료")
-    print(f"결과 저장: {out_path}")
-    print(results)
+    # Keep the original forward-asof matching behavior for comparability.
+    # This matching needs timestamp-tolerance and timezone validation.
+    matched = pd.merge_asof(
+        events,
+        returns.sort_values(TIME_COLUMN),
+        on=TIME_COLUMN,
+        direction="forward",
+    ).dropna()
+
+    selected = remove_nearby_events(matched)
+    results = fit_regressions(selected)
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    results.to_csv(OUTPUT_PATH, index=False, encoding="utf-8")
+    print(results.to_string(index=False))
+    print(f"Saved: {OUTPUT_PATH}")
 
 
 if __name__ == "__main__":
