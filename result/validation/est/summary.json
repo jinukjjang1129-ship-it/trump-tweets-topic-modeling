@@ -1,0 +1,74 @@
+{
+  "price_timezone_assumption": "Etc/GMT+5",
+  "quality": {
+    "rows": 1123674,
+    "invalid_rows": 0,
+    "duplicate_timestamps": 56
+  },
+  "rth_rows": 268711,
+  "topic_threshold_development": 0.10556289,
+  "tariff_tweets": 165,
+  "matched_tariff_entries": 25,
+  "nonoverlapping_complete_trades": 18,
+  "portfolio": [
+    {
+      "period": "development",
+      "side": -1,
+      "trades": 3,
+      "roundtrip_cost_bps": 2.0,
+      "return": 0.0006742094596241532
+    },
+    {
+      "period": "development",
+      "side": 1,
+      "trades": 3,
+      "roundtrip_cost_bps": 2.0,
+      "return": -0.0018788525096989916
+    },
+    {
+      "period": "holdout",
+      "side": -1,
+      "trades": 15,
+      "roundtrip_cost_bps": 2.0,
+      "return": 0.010323283657511784
+    },
+    {
+      "period": "holdout",
+      "side": 1,
+      "trades": 15,
+      "roundtrip_cost_bps": 2.0,
+      "return": -0.016284968827827706
+    }
+  ],
+  "long_short_switch": [
+    {
+      "period": "full",
+      "long_return": 0.4128983534257318,
+      "hedged_return": 0.4443858292799281,
+      "difference_pp": 3.148747585419631
+    },
+    {
+      "period": "holdout",
+      "long_return": 0.03083043010809794,
+      "hedged_return": 0.05237699474094759,
+      "difference_pp": 2.154656463284965
+    }
+  ],
+  "topic_input": "train_only_topic_scores.csv",
+  "signal": "topic-and-tariff",
+  "legacy_from_2018_09": {
+    "summed_short": 0.1644899195377664,
+    "buy_hold_rebased_ratio": 0.03329687903017797,
+    "difference_pp": 13.119304050758842
+  },
+  "limitations": [
+    "Vendor clock provenance requires confirmation",
+    "SPXUSD feed is not certified as tradable S&P500 cash",
+    "Weekday/session filter is not an exchange calendar",
+    "Custom topic input: check its training provenance",
+    "Historical holdout has already been explored",
+    "BH family covers this run only, not every past hypothesis",
+    "Rules are a reconstruction; original switching ledger is missing",
+    "Costs exclude borrow/financing and are a scenario"
+  ]
+}

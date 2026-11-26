@@ -1,0 +1,13 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+!.env.example
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+result/generated/
+result/validation/*/switch_equity_*.csv
+result/validation/*/tariff_trades.csv
