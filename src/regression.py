@@ -3,11 +3,11 @@
 This script does not establish causality or adjust for multiple testing.
 It requires data/processed/reg_input_price_returns.csv (not committed).
 """
+
 from pathlib import Path
 
 import pandas as pd
 import statsmodels.api as sm
-
 
 ROOT = Path(__file__).resolve().parents[1]
 TOPIC_PATH = ROOT / "data/processed/reg_input_topic0_minute.csv"

@@ -3,11 +3,11 @@
 Important: these two series have different exposure and compounding rules.
 They are NOT comparable as live trading portfolios or verified alpha.
 """
+
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
-
 
 ROOT = Path(__file__).resolve().parents[1]
 INPUT_PATH = ROOT / "data/processed/backtest_input.csv"
@@ -19,7 +19,9 @@ EVENT_HORIZON_MINUTES = 60
 def load_input(path: Path = INPUT_PATH) -> pd.DataFrame:
     """Load and sort the original event/backtest input."""
     frame = pd.read_csv(path)
-    frame[TIME_COLUMN] = pd.to_datetime(frame[TIME_COLUMN], errors="coerce")
+    frame[TIME_COLUMN] = pd.to_datetime(
+        frame[TIME_COLUMN], errors="coerce", utc=True
+    ).dt.tz_convert("America/New_York")
     return (
         frame.dropna(subset=[TIME_COLUMN])
         .sort_values(TIME_COLUMN)
@@ -59,16 +61,14 @@ def plot_comparison(
     if start_date is None:
         first = max(market[TIME_COLUMN].iloc[0], events[TIME_COLUMN].iloc[0])
     else:
-        first = pd.Timestamp(start_date)
+        first = pd.Timestamp(start_date, tz="America/New_York")
 
     market_subset = market.loc[market[TIME_COLUMN] >= first].copy()
     event_subset = events.loc[events[TIME_COLUMN] >= first].copy()
     if market_subset.empty or event_subset.empty:
         raise ValueError(f"No market/events available after {first}")
 
-    market_subset["rebased"] = (
-        market_subset["bh_cum"] - market_subset["bh_cum"].iloc[0]
-    )
+    market_subset["rebased"] = market_subset["bh_cum"] - market_subset["bh_cum"].iloc[0]
     if start_date is None:
         event_subset["rebased"] = (
             event_subset["cum_short"] - event_subset["cum_short"].iloc[0]
@@ -108,9 +108,7 @@ def main() -> None:
     market = market_buy_and_hold(frame)
     events = exploratory_event_short(frame)
 
-    plot_comparison(
-        market, events, OUTPUT_DIR / "series_first_available.png"
-    )
+    plot_comparison(market, events, OUTPUT_DIR / "series_first_available.png")
     plot_comparison(
         market,
         events,
